@@ -23,11 +23,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // fetch triggered articles from previous day
+  // fetch triggered articles from previous day or current articles if none from previous day
   app.get("/api/triggered-articles", async (req, res) => {
     try {
       console.log("Fetching triggered articles for previous day...");
-      const articles = await fetchRSSFeeds(true);
+      let articles = await fetchRSSFeeds(true);
+      
+      // If no articles from previous day, get recent articles
+      if (articles.length === 0) {
+        console.log("No articles from previous day, fetching recent articles...");
+        articles = await fetchRSSFeeds(false);
+        // Take the most recent 10 articles
+        articles = articles.slice(0, 10);
+      }
+      
       lastTriggeredArticles = articles;
       lastTriggeredDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
       console.log(`Fetched ${articles.length} triggered articles`);
@@ -43,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ articles: lastTriggeredArticles, triggeredDate: lastTriggeredDate });
   });
 
-  // chat endpoint - only uses triggered articles
+  // chat endpoint - uses all available articles (both current and triggered)
   app.post("/api/chat", async (req, res) => {
     try {
       const { question } = req.body;
@@ -52,9 +61,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Question is required" });
       }
 
-      // Search only in triggered articles
-      const relevantArticles = await searchArticlesByKeyword(lastTriggeredArticles, question);
-      console.log(`Chat: Found ${relevantArticles.length} relevant articles from triggered batch`);
+      // Get fresh articles for chat context
+      const allArticles = await fetchRSSFeeds();
+      
+      // Also include triggered articles if available
+      const combinedArticles = [...allArticles, ...lastTriggeredArticles];
+      
+      // Remove duplicates by ID
+      const uniqueArticles = combinedArticles.filter((article, index, self) => 
+        index === self.findIndex(a => a.id === article.id)
+      );
+
+      // Search in all available articles
+      const relevantArticles = await searchArticlesByKeyword(uniqueArticles, question);
+      console.log(`Chat: Found ${relevantArticles.length} relevant articles from ${uniqueArticles.length} total articles`);
       
       // Generate response using Gemini
       const answer = await generateChatResponse(question, relevantArticles);

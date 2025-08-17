@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Settings, Plus, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -130,6 +130,9 @@ export default function SettingsModal({ triggerTime, onTriggerTimeChange, onManu
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>
+            Configure your RSS sources, categories, and daily trigger settings for the AI news platform.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
