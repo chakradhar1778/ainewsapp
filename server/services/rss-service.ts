@@ -20,7 +20,9 @@ interface RSSFeed {
 const RSS_FEEDS = [
   { url: 'https://techcrunch.com/tag/artificial-intelligence/feed/', source: 'TechCrunch' },
   { url: 'https://www.wired.com/category/artificial-intelligence/feed/', source: 'Wired' },
-  { url: 'https://www.theverge.com/rss/index.xml', source: 'The Verge' }
+  { url: 'https://www.theverge.com/rss/index.xml', source: 'The Verge' },
+  { url: 'https://www.cnet.com/rss/news/', source: 'CNET' },
+  { url: 'https://www.techradar.com/rss', source: 'TechRadar' }
 ];
 
 export async function parseXMLToJSON(xmlString: string): Promise<RSSFeed> {
@@ -94,21 +96,35 @@ export async function generateSummary(title: string, description: string): Promi
       throw new Error('GEMINI_API_KEY not available');
     }
 
-    const prompt = `Create a detailed 10-sentence summary for this news article:
+    const prompt = `Summarize the article in 2–4 short sentences. Be factual and neutral. No opinions or hype. If the source already provides a summary, tighten it to <60 words.
 
 Title: ${title}
-Description: ${description}
-
-Provide exactly 10 sentences that capture the key points, implications, and context of this AI/tech news article. Focus on technical details, business impact, and future implications.`;
+Description: ${description}`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
 
-    return response.text || '';
+    const summary = response.text || '';
+    
+    // Cap at ~60-80 words
+    const words = summary.split(' ');
+    if (words.length > 80) {
+      return words.slice(0, 80).join(' ') + '...';
+    }
+    
+    return summary;
   } catch (error) {
     console.error('Summary generation failed:', error);
+    // Fallback to shortened description
+    if (description) {
+      const words = description.split(' ');
+      if (words.length > 60) {
+        return words.slice(0, 60).join(' ') + '...';
+      }
+      return description;
+    }
     return '';
   }
 }
@@ -136,8 +152,61 @@ export function categorizeArticle(title: string, description: string): string[] 
   return categories.length > 0 ? categories : ['General'];
 }
 
-export async function fetchRSSFeeds(): Promise<ClientArticle[]> {
+// Normalize article data across different RSS feeds
+function normalizeArticle(item: RSSItem, source: string): Omit<ClientArticle, 'id' | 'summary' | 'categories'> {
+  // Parse and normalize publishedAt to IST
+  let publishedAt = '';
+  if (item.pubDate) {
+    try {
+      const date = new Date(item.pubDate);
+      publishedAt = date.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error parsing date:', item.pubDate, error);
+    }
+  }
+
+  return {
+    title: item.title.trim(),
+    link: item.link.trim(),
+    description: item.description?.trim(),
+    imageUrl: item.enclosure?.url,
+    pubDate: publishedAt,
+    source
+  };
+}
+
+// Check if article is from previous day in IST
+function isFromPreviousDay(pubDateStr: string): boolean {
+  if (!pubDateStr) return false;
+  
+  try {
+    const articleDate = new Date(pubDateStr);
+    const now = new Date();
+    
+    // Get previous day in IST
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const yesterdayIST = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const articleDateIST = articleDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    
+    return articleDateIST === yesterdayIST;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function fetchRSSFeeds(onlyPreviousDay: boolean = false): Promise<ClientArticle[]> {
   const allArticles: ClientArticle[] = [];
+  const seenUrls = new Set<string>(); // For deduplication
   
   for (const feed of RSS_FEEDS) {
     try {
@@ -159,17 +228,25 @@ export async function fetchRSSFeeds(): Promise<ClientArticle[]> {
       
       for (const item of parsedFeed.items) {
         try {
+          // Skip duplicates by URL
+          if (seenUrls.has(item.link)) {
+            continue;
+          }
+          seenUrls.add(item.link);
+          
+          const normalizedArticle = normalizeArticle(item, feed.source);
+          
+          // Filter by previous day if requested
+          if (onlyPreviousDay && !isFromPreviousDay(normalizedArticle.pubDate || '')) {
+            continue;
+          }
+          
           const summary = await generateSummary(item.title, item.description || '');
           const categories = categorizeArticle(item.title, item.description || '');
           
           const article: ClientArticle = {
             id: `${feed.source}-${Date.now()}-${Math.random()}`,
-            title: item.title,
-            link: item.link,
-            description: item.description,
-            imageUrl: item.enclosure?.url,
-            pubDate: item.pubDate,
-            source: feed.source,
+            ...normalizedArticle,
             summary: summary || undefined,
             categories
           };
@@ -184,11 +261,11 @@ export async function fetchRSSFeeds(): Promise<ClientArticle[]> {
     }
   }
   
-  // Sort by publication date (newest first) and limit to 20
+  // Sort by publication date (newest first) and limit to 30
   return allArticles
     .sort((a, b) => {
       if (!a.pubDate || !b.pubDate) return 0;
       return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
     })
-    .slice(0, 20);
+    .slice(0, 30);
 }

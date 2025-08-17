@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import type { ChatMessage, ClientArticle } from '@shared/schema';
+import type { ChatMessage } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
-export function useChat(articles: ClientArticle[]) {
+export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
 
@@ -11,7 +11,7 @@ export function useChat(articles: ClientArticle[]) {
     mutationFn: async (question: string) => {
       return apiRequest('/api/chat', {
         method: 'POST',
-        body: JSON.stringify({ question, articles }),
+        body: JSON.stringify({ question }),
         headers: { 'Content-Type': 'application/json' }
       }) as Promise<ChatMessage>;
     },

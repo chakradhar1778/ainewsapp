@@ -1,15 +1,10 @@
 import { useState } from "react";
 import { MessageCircle, X, Loader2 } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
-import { ClientArticle } from "@shared/schema";
 
-interface ChatBoxProps {
-  articles: ClientArticle[];
-}
-
-export default function ChatBox({ articles }: ChatBoxProps) {
+export default function ChatBox() {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, inputValue, setInputValue, sendMessage, clearChat, isLoading } = useChat(articles);
+  const { messages, inputValue, setInputValue, sendMessage, clearChat, isLoading } = useChat();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

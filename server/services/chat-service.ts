@@ -19,14 +19,17 @@ export async function generateChatResponse(question: string, relevantArticles: C
     }
 
     if (relevantArticles.length === 0) {
-      return "Not found";
+      // Suggest random source
+      const sources = ['TechCrunch', 'The Verge', 'WIRED', 'CNET', 'TechRadar'];
+      const randomSource = sources[Math.floor(Math.random() * sources.length)];
+      return `Not found. Try checking ${randomSource} for recent updates.`;
     }
 
     const summariesText = relevantArticles
-      .map((article, index) => `${index + 1}. ${article.title}\nSummary: ${article.summary || article.description || 'No summary available'}\nSource: ${article.source}\n`)
+      .map((article, index) => `${index + 1}. ${article.title}\nSummary: ${article.summary || article.description || 'No summary available'}\nSource: ${article.source}\nTime: ${article.pubDate}\n`)
       .join('\n');
 
-    const prompt = `You are a News Assistant. Answer only from the provided summaries. If the information is not in the summaries, reply exactly 'Not found'.
+    const prompt = `Answer ONLY using the provided summaries and their timestamps. If information is not present, reply exactly 'Not found'. Keep answers to 1–3 sentences. Include source and time when citing.
 
 Question: ${question}
 

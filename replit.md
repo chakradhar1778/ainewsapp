@@ -2,11 +2,23 @@
 
 ## Overview
 
-This is a modern, full-stack AI news platform that aggregates content from major tech publications via RSS feeds. The application features real-time article fetching from TechCrunch, Wired, and The Verge, with AI-powered summaries and an intelligent chat assistant for querying articles. Built with React on the frontend and Express.js on the backend, it includes localStorage caching, offline support, and comprehensive search/filtering functionality.
+This is a modern, full-stack AI news platform that aggregates content from major tech publications via RSS feeds. The application features real-time article fetching from TechCrunch, Wired, The Verge, CNET, and TechRadar, with AI-powered summaries using Gemini API and an intelligent chat assistant for querying articles. Built with React on the frontend and Express.js on the backend, it includes localStorage caching, offline support, daily scheduler in IST timezone, swipe gestures, and comprehensive settings management.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Updates (January 17, 2025)
+
+### Major Features Added:
+- **Daily Scheduler**: Automatic daily RSS ingestion at 06:00 IST with previous-day filtering
+- **Triggered Articles View**: Separate view for daily digest articles with localStorage caching
+- **Gemini API Integration**: Complete migration from OpenAI to Gemini for chat and summaries
+- **Extended RSS Sources**: Added CNET and TechRadar with normalized field mapping
+- **Settings Management**: Comprehensive modal with source toggles, custom URLs, and trigger time controls
+- **Swipe Gestures**: Article card interactions using react-swipeable library
+- **Service Worker**: Offline image caching with Cache First strategy (max 50 images, 7 days)
+- **IST Timezone Support**: All timestamps normalized to Indian Standard Time
 
 ## System Architecture
 
