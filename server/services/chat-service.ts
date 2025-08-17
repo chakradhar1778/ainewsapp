@@ -1,8 +1,7 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import type { ClientArticle, ChatMessage } from "../../shared/schema.js";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function searchArticlesByKeyword(articles: ClientArticle[], query: string): Promise<ClientArticle[]> {
   const keywords = query.toLowerCase().split(' ');
@@ -15,8 +14,8 @@ export async function searchArticlesByKeyword(articles: ClientArticle[], query: 
 
 export async function generateChatResponse(question: string, relevantArticles: ClientArticle[]): Promise<string> {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return "OpenAI API key not available. Please provide an API key to enable chat functionality.";
+    if (!process.env.GEMINI_API_KEY) {
+      return "Gemini API key not available. Please provide an API key to enable chat functionality.";
     }
 
     if (relevantArticles.length === 0) {
@@ -27,21 +26,19 @@ export async function generateChatResponse(question: string, relevantArticles: C
       .map((article, index) => `${index + 1}. ${article.title}\nSummary: ${article.summary || article.description || 'No summary available'}\nSource: ${article.source}\n`)
       .join('\n');
 
-    const systemPrompt = "You are a News Assistant. Answer only from the provided summaries. If the information is not in the summaries, reply exactly 'Not found'.";
+    const prompt = `You are a News Assistant. Answer only from the provided summaries. If the information is not in the summaries, reply exactly 'Not found'.
 
-    const userPrompt = `Question: ${question}\n\nAvailable summaries:\n${summariesText}`;
+Question: ${question}
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      max_tokens: 500,
-      temperature: 0.1,
+Available summaries:
+${summariesText}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
     });
 
-    return response.choices[0].message.content || "Not found";
+    return response.text || "Not found";
   } catch (error) {
     console.error('Chat response generation failed:', error);
     return "Sorry, I encountered an error while processing your question. Please try again.";
