@@ -4,12 +4,17 @@ import HeroSection from "@/components/hero-section";
 import ArticleCard from "@/components/article-card";
 import Sidebar from "@/components/sidebar";
 import Footer from "@/components/footer";
+import RSSArticleList from "@/components/rss-article-list";
+import ChatBox from "@/components/chat-box";
 import { Button } from "@/components/ui/button";
+import { useArticles } from "@/hooks/use-articles";
 
 export default function Home() {
-  const [activeFilter, setActiveFilter] = useState("All");
+  const { articles } = useArticles();
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
 
-  const articles = [
+  // Keep existing demo articles for display alongside RSS feed
+  const demoArticles = [
     {
       image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&h=300",
       imageAlt: "Machine learning data visualization",
@@ -56,8 +61,6 @@ export default function Home() {
     }
   ];
 
-  const filters = ["All", "Research", "Industry"];
-
   return (
     <div className="min-h-screen bg-gray-50 font-inter text-slate-800">
       <Header />
@@ -66,48 +69,31 @@ export default function Home() {
         <HeroSection />
 
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Articles Section */}
+          {/* RSS Articles Section */}
           <section className="lg:col-span-3">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Latest Articles</h2>
-              <div className="flex space-x-2">
-                {filters.map((filter) => (
-                  <Button
-                    key={filter}
-                    variant={activeFilter === filter ? "default" : "secondary"}
-                    size="sm"
-                    onClick={() => setActiveFilter(filter)}
-                    className={
-                      activeFilter === filter
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-slate-600 hover:bg-gray-200"
-                    }
-                  >
-                    {filter}
-                  </Button>
+            <RSSArticleList onArticleSelect={(article) => {
+              // Open article in new tab
+              if (article.link) {
+                window.open(article.link, '_blank');
+              }
+            }} />
+
+            {/* Demo Articles Section */}
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">Featured Articles</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {demoArticles.map((article, index) => (
+                  <ArticleCard key={index} {...article} />
                 ))}
               </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              {articles.map((article, index) => (
-                <ArticleCard key={index} {...article} />
-              ))}
-            </div>
-
-            {/* Load More Button */}
-            <div className="text-center">
-              <Button
-                variant="outline"
-                className="bg-white border border-gray-300 text-slate-700 hover:bg-gray-50 transition-colors"
-              >
-                Load More Articles
-              </Button>
             </div>
           </section>
 
           <Sidebar />
         </div>
+        
+        {/* Chat Box */}
+        <ChatBox articles={articles || []} />
       </main>
 
       <Footer />

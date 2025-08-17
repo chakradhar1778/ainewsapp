@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a modern, full-stack news platform focused on artificial intelligence content. The application features a clean, responsive design with article browsing, categorization, and user engagement features. Built with React on the frontend and Express.js on the backend, it uses PostgreSQL for data persistence and includes a comprehensive UI component library.
+This is a modern, full-stack AI news platform that aggregates content from major tech publications via RSS feeds. The application features real-time article fetching from TechCrunch, Wired, and The Verge, with AI-powered summaries and an intelligent chat assistant for querying articles. Built with React on the frontend and Express.js on the backend, it includes localStorage caching, offline support, and comprehensive search/filtering functionality.
 
 ## User Preferences
 
